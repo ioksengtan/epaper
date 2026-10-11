@@ -1,0 +1,134 @@
+#!/usr/bin/python
+# -*- coding:utf-8 -*-
+import sys
+import os
+#picdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'pic')
+#libdir = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'lib')
+picdir = '/home/pi/epaper/pic'
+libdir = '/home/pi/epaper/lib'
+if os.path.exists(libdir):
+    sys.path.append(libdir)
+else:
+    print('lib is not exist')
+
+import logging
+from waveshare_epd import epd7in5_V2
+import time
+from PIL import Image,ImageDraw,ImageFont
+import traceback
+
+logging.basicConfig(level=logging.DEBUG)
+
+try:
+    logging.info("epd7in5_V2 Demo")
+    epd = epd7in5_V2.EPD()
+    
+    logging.info("init and Clear")
+    epd.init()
+    epd.Clear()
+
+    font24 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 24)
+    font18 = ImageFont.truetype(os.path.join(picdir, 'Font.ttc'), 18)
+
+#    # Drawing on the Horizontal image
+#    logging.info("1.Drawing on the Horizontal image...")
+#    Himage = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
+#    draw = ImageDraw.Draw(Himage)
+#    draw.text((10, 0), 'hello world', font = font24, fill = 0)
+#    draw.text((10, 100), 'IORnD', font = font24, fill = 0)
+#    draw.text((10, 20), '7.5inch e-Paper', font = font24, fill = 0)
+#    draw.text((150, 0), u'微雪电子', font = font24, fill = 0)
+#    draw.line((20, 50, 70, 100), fill = 0)
+#    draw.line((70, 50, 20, 100), fill = 0)
+#    draw.rectangle((20, 50, 70, 100), outline = 0)
+#    draw.line((165, 50, 165, 100), fill = 0)
+#    draw.line((140, 75, 190, 75), fill = 0)
+#    draw.arc((140, 50, 190, 100), 0, 360, fill = 0)
+#    draw.rectangle((80, 50, 130, 100), fill = 0)
+#    draw.chord((200, 50, 250, 100), 0, 360, fill = 0)
+#    epd.display(epd.getbuffer(Himage))
+#    time.sleep(2)
+#
+#    # Drawing on the Vertical image
+#    logging.info("2.Drawing on the Vertical image...")
+#    Limage = Image.new('1', (epd.height, epd.width), 255)  # 255: clear the frame
+#    draw = ImageDraw.Draw(Limage)
+#    draw.text((2, 0), 'hello world', font = font18, fill = 0)
+#    draw.text((2, 20), '7.5inch epd', font = font18, fill = 0)
+#    draw.text((20, 50), u'微雪电子', font = font18, fill = 0)
+#    draw.line((10, 90, 60, 140), fill = 0)
+#    draw.line((60, 90, 10, 140), fill = 0)
+#    draw.rectangle((10, 90, 60, 140), outline = 0)
+#    draw.line((95, 90, 95, 140), fill = 0)
+#    draw.line((70, 115, 120, 115), fill = 0)
+#    draw.arc((70, 90, 120, 140), 0, 360, fill = 0)
+#    draw.rectangle((10, 150, 60, 200), fill = 0)
+#    draw.chord((70, 150, 120, 200), 0, 360, fill = 0)
+#    epd.display(epd.getbuffer(Limage))
+#    time.sleep(2)
+#
+    logging.info("3.read bmp file")
+#    Himage = Image.open(os.path.join(picdir, '7in5_V2.bmp'))
+    Himage = Image.open(os.path.join(picdir, 'mrbeast4.bmp'))
+    pixels = Himage.load()
+    W = Himage.size[0]
+    L = Himage.size[1]
+    WindowLength = {
+        0: W/3, #160
+        1: W/15, #32
+        2: W/30,
+        3: W/60,
+        4: W/120,
+        5: W/240,
+        6: W/480
+    }
+    NumRound = 7
+    for rnd in range(0, NumRound):
+        print('round:'+str(rnd))
+        output = Image.new( 'RGB', (480,800), "white")
+        output_pixels = output.load()
+        minMatrix = {}
+        for i in range(W): # 480
+            xx = int(i / WindowLength[rnd])
+            for j in range(L): # 800
+                yy = int(j / WindowLength[rnd])
+                if (xx, yy) not in minMatrix:
+                    minMatrix[xx, yy] = 0
+                if pixels[i, j][0] > minMatrix[(xx, yy)]: 
+                    minMatrix[xx, yy] = pixels[i, j][0]
+        for i in range(W):
+            for j in range(L):
+                xx = int(i / WindowLength[rnd])
+                yy = int(j / WindowLength[rnd])
+                val = int(minMatrix[xx, yy])
+                output_pixels[i,j] = (val, val, val)
+        epd.display(epd.getbuffer(output))
+        time.sleep(2)
+
+#    draw = ImageDraw.Draw(Himage)
+#    draw.text((20, 20), u'Mr.Beast', font = font18, fill = 0)
+#
+#    epd.display(epd.getbuffer(Himage))
+#    time.sleep(2)
+
+#    logging.info("4.read bmp file on window")
+#    Himage2 = Image.new('1', (epd.width, epd.height), 255)  # 255: clear the frame
+#    bmp = Image.open(os.path.join(picdir, '100x100.bmp'))
+#    Himage2.paste(bmp, (50,10))
+#    epd.display(epd.getbuffer(Himage2))
+#    time.sleep(2)
+#
+#    logging.info("Clear...")
+#    epd.init()
+#    epd.Clear()
+
+    logging.info("Goto Sleep...")
+    epd.sleep()
+    
+except IOError as e:
+    logging.info(e)
+    
+except KeyboardInterrupt:    
+    logging.info("ctrl + c:")
+    epd7in5_V2.epdconfig.module_exit()
+    exit()
